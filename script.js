@@ -1,7 +1,7 @@
-//Practicing Consol Outputs
+// Practicing Consol Outputs
 console.log("Japan Travel Planner Engine Initilized");
 
-//also counting # of location cards based on div id
+// Also counting # of location cards based on div id
 let mySavedSpots = document.querySelectorAll('.locations');
 
 let savedData = localStorage.getItem('myJapanTrip');
@@ -18,20 +18,20 @@ if (savedData){
     ];
 }
 
-// 2. DOM REFERENCES: Grabbing our main HTML anchors
+// DOM REFERENCES: Grabbing our main HTML anchors
 let container = document.getElementById('locations-container');
 let addButton = document.getElementById('add-btn');
 
-// 3. THE RENDER LOOP: Wipes the screen and redraws based on State
+// THE RENDER LOOP: Wipes the screen and redraws based on State
 function renderLocations() {
     
-    //Save current state to hard drive
+    // Save current state to hard drive
     localStorage.setItem('myJapanTrip', JSON.stringify(travelLocations));
 
     // Create an empty string to hold all our generated HTML
     let allHTML = "";
 
-    // --- LOOP 1: Build the HTML String ---
+    // LOOP 1: Build the HTML String
     for (let i = 0; i < travelLocations.length; i++) {
         let spot = travelLocations[i]; 
 
@@ -51,6 +51,7 @@ function renderLocations() {
                 <p><strong>Category:</strong> ${spot.category}</p>
                 <p><strong>Notes:</strong> ${spot.notes}</p>
                 <button id="btn-${i}">${buttonText}</button>
+                <button id="delete-btn-${i}" style="background-color: #ff4d4d; color: white; margin-left: 10px;">Delete</button>
             </div>
         `;
 
@@ -60,33 +61,50 @@ function renderLocations() {
     // Push the massive string to the screen all at once
     container.innerHTML = allHTML;
 
-    // --- LOOP 2: Attach the Event Listeners to the new buttons ---
+    // LOOP 2: Attach the Event Listeners to the new buttons
     for (let i = 0; i < travelLocations.length; i++) {
         
+        // Visited Button
         let button = document.getElementById(`btn-${i}`);
         
         button.addEventListener('click', function() {
-            
             // Flip the boolean state in our array
             travelLocations[i].visited = !travelLocations[i].visited;
-
             // Command the UI engine to repaint the screen
             renderLocations();
-            
         });
+
+        // Delete Button
+        let deleteButton = document.getElementById(`delete-btn-${i}`);
+        deleteButton.addEventListener('click', function(){
+            // Remove 1 element at i
+            travelLocations.splice(i,1);
+            renderLocations();
+        })
     }
 }
 
-// 4. INITIALIZATION: Call it once so the page draws the initial cards on load
+// INITIALIZATION: Call it once so the page draws the initial cards on load
 renderLocations();
 
-// 5. USER INPUT: Listen for new locations being added
+// USER INPUT: Listen for new locations being added
 addButton.addEventListener('click', function() {
     
     // Grab the raw text the user typed
     let nameInput = document.getElementById('new-name').value;
     let categoryInput = document.getElementById('new-category').value;
     let notesInput = document.getElementById('new-notes').value;
+
+    // GUARD CLAUSE(s)
+    if (nameInput.trim() === "") {
+        alert("Please enter a location name before saving!");
+        return; // This immediately stops the function from running!
+    }
+
+    if (categoryInput.trim() === "") {
+        alert("Please enter a category type before saving!");
+        return; // This immediately stops the function from running!
+    }
 
     // Build a new object
     let newLocation = {
