@@ -1,30 +1,55 @@
 <head>
-    <title>My Japan Trip</title>
+    <title>My Travel Planner</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Japan Travel Planner</h1>
+    <h1>Travel Planner Dashboard</h1>
 
-    <h2>Categories to Track:</h2>
-    <ul>
-        <li>Ovo-Vegetarian Spots</li>
-        <li>Anime Landmarks (One Piece, JJK)</li>
-        <li>Motorcycle & Car Scene Spots</li>
-    </ul>
+    <div id="page-dashboard" style="display: block;">
+        <h2>your saved trips</h2>
+        <div id="trip-list-container"></div>
 
-    <hr>
+        <div style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 15px;">
+            <button id="btn-import" style="background-color: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer;">import trip from code</button>
+        </div>
+    </div>
 
-    <h2>Add a New Location</h2>
-    <input type="text" id="new-name" placeholder="Location Name">
-    <input type="text" id="new-category" placeholder="Category">
-    <input type="text" id="new-notes" placeholder="Notes">
-    <button id="add-btn">Save Location</button>
+    <div id="page-planner" style="display: none;">
 
-    <hr>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <button id="btn-export" style="background-color: #2196F3; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">export trip code</button>
+        </div>
+        
+        <button id="btn-back" style="margin-bottom: 20px; padding: 5px 10px;"><- back to trips</button>
+        
+        <h2 id="current-trip-title" style="color: #2196F3;">loading trip...</h2>
+        
+        <hr>
 
-    <h2>Saved Locations</h2>
+        <h2>categories to track:</h2>
+        
+        <div style="margin-bottom: 15px;">
+            <input type="text" id="new-cat-input" placeholder="new category...">
+            <button id="add-cat-btn">add category</button>
+        </div>
 
-    <div id="locations-container"></div>
+        <ul id="categories-container" style="list-style-type: none; padding-left: 0;">
+            </ul>
+
+        <hr>
+
+        <h2>add a new location</h2>
+        <input type="text" id="new-name" placeholder="location name">
+        <input type="text" id="new-category" placeholder="category">
+        <input type="text" id="new-notes" placeholder="notes">
+        <button id="add-btn">save location</button>
+
+        <hr>
+
+        <h2>saved locations</h2>
+        <div id="locations-container"></div>
+
+    </div>
 
     <script src="script.js"></script>
 </body>
