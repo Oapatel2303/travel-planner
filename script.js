@@ -27,9 +27,9 @@ if (savedMaster) {
                 { name: "motorcycle & car scene spots", checked: false }
             ],
             locations: [
-                { name: "shibuya station", category: "anime landmark (jjk)", notes: "need to find the specific exit from the shibuya incident arc.", visited: false },
-                { name: "t's tantan (tokyo station)", category: "vegetarian", notes: "famous vegan ramen spot inside keiyo street.", visited: false },
-                { name: "daikoku futo pa", category: "motorcycle & car scene", notes: "legendary car meet spot.", visited: false }
+                { name: "shibuya station", category: "anime landmark (jjk)", notes: "need to find the specific exit from the shibuya incident arc.", visited: false, cost: 0 },
+                { name: "t's tantan (tokyo station)", category: "vegetarian", notes: "famous vegan ramen spot inside keiyo street.", visited: false, cost: 15 },
+                { name: "daikoku futo pa", category: "motorcycle & car scene", notes: "legendary car meet spot.", visited: false, cost: 20 }
             ]
         },
         {
@@ -40,7 +40,7 @@ if (savedMaster) {
                 { name: "bistro classics", checked: false }
             ],
             locations: [
-                { name: "le procope", category: "bistro classics", notes: "historic restaurant in paris. trying the coq au vin.", visited: false }
+                { name: "le procope", category: "bistro classics", notes: "historic restaurant in paris. trying the coq au vin.", visited: false, cost: 45 }
             ]
         }
     ];
@@ -250,10 +250,13 @@ addCatBtn.addEventListener('click', function() {
 
 
 // ==========================================
-// ENGINE 2: LOCATION CARDS
+// ENGINE 2: LOCATION CARDS (WITH EDIT LOGIC & COMPACT CARDS)
 // ==========================================
 let container = document.getElementById('locations-container');
 let addButton = document.getElementById('add-btn');
+
+// NEW TRACKER: Null means we are adding a new spot. A number means we are editing that specific spot.
+let editingIndex = null; 
 
 function renderLocations() {
     if (!activeTripId) return;
@@ -261,6 +264,7 @@ function renderLocations() {
 
     localStorage.setItem('myMasterTrips', JSON.stringify(masterTripsArray));
     let allHTML = "";
+    let tripTotal = 0; 
 
     for (let i = 0; i < currentTrip.locations.length; i++) {
         let spot = currentTrip.locations[i]; 
@@ -272,13 +276,23 @@ function renderLocations() {
             buttonText = "visited!";
         }
 
+        tripTotal += spot.cost || 0; 
+
+        // THIS HTML IS MUCH MORE COMPACT
         let cardHTML = `
-            <div class="locations" id="card-${i}" style="background-color: ${cardColor};">
-                <h3 style="margin-top: 0;">${spot.name}</h3>
-                <p><strong>category:</strong> ${spot.category}</p>
-                <p><strong>notes:</strong> ${spot.notes}</p>
-                <button id="btn-${i}">${buttonText}</button>
-                <button id="delete-btn-${i}" style="background-color: #ff4d4d; color: white; margin-left: 10px;">delete</button>
+            <div class="locations" id="card-${i}" style="background-color: ${cardColor}; padding: 12px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
+                    <h3 style="margin: 0; font-size: 1.1em;">${spot.name}</h3>
+                    <span style="font-weight: bold; color: #4CAF50;">$${(spot.cost || 0).toFixed(2)}</span>
+                </div>
+                <p style="margin: 2px 0; font-size: 13px; color: #555;"><strong>cat:</strong> ${spot.category}</p>
+                <p style="margin: 2px 0 10px 0; font-size: 13px;"><strong>notes:</strong> ${spot.notes}</p>
+                
+                <div style="display: flex; gap: 8px;">
+                    <button id="btn-${i}" style="font-size: 12px; padding: 4px 8px;">${buttonText}</button>
+                    <button id="edit-btn-${i}" style="font-size: 12px; padding: 4px 8px; background-color: #ffc107; border: none; border-radius: 3px; cursor: pointer;">edit</button>
+                    <button id="delete-btn-${i}" style="font-size: 12px; padding: 4px 8px; background-color: #ff4d4d; color: white; border: none; border-radius: 3px; cursor: pointer;">delete</button>
+                </div>
             </div>
         `;
         allHTML += cardHTML;
@@ -286,20 +300,88 @@ function renderLocations() {
 
     container.innerHTML = allHTML;
 
+    let budgetDisplay = document.getElementById('budget-display');
+    if (budgetDisplay) {
+        budgetDisplay.innerText = `total budget: $${tripTotal.toFixed(2)}`;
+    }
+
+    // ATTACH LISTENERS FOR ALL BUTTONS
     for (let i = 0; i < currentTrip.locations.length; i++) {
-        let button = document.getElementById(`btn-${i}`);
-        button.addEventListener('click', function() {
+        // Visited Button
+        document.getElementById(`btn-${i}`).addEventListener('click', function() {
             currentTrip.locations[i].visited = !currentTrip.locations[i].visited;
             renderLocations();
         });
 
-        let deleteButton = document.getElementById(`delete-btn-${i}`);
-        deleteButton.addEventListener('click', function(){
+        // Delete Button
+        document.getElementById(`delete-btn-${i}`).addEventListener('click', function(){
             currentTrip.locations.splice(i,1);
             renderLocations();
         });
+
+        // NEW: Edit Button
+        document.getElementById(`edit-btn-${i}`).addEventListener('click', function(){
+            // 1. Suck the data back up into the input boxes
+            document.getElementById('new-name').value = currentTrip.locations[i].name;
+            document.getElementById('new-category').value = currentTrip.locations[i].category;
+            document.getElementById('new-notes').value = currentTrip.locations[i].notes;
+            document.getElementById('new-price').value = currentTrip.locations[i].cost || "";
+            
+            // 2. Set the tracker to this card's ID
+            editingIndex = i;
+            
+            // 3. Change the button text and color to show we are in edit mode
+            addButton.innerText = "update location";
+            addButton.style.backgroundColor = "#ffc107";
+            addButton.style.color = "black";
+            
+            // 4. Scroll the user up to the input boxes
+            document.getElementById('new-name').focus();
+        });
     }
 }
+
+// UPDATED SAVE BUTTON LOGIC
+addButton.addEventListener('click', function() {
+    if (!activeTripId) return;
+    let currentTrip = masterTripsArray.find(t => t.id === activeTripId);
+
+    let nameInput = document.getElementById('new-name').value;
+    let categoryInput = document.getElementById('new-category').value;
+    let notesInput = document.getElementById('new-notes').value;
+    let priceInput = document.getElementById('new-price').value; 
+
+    if (nameInput.trim() === "") { alert("please enter a location name before saving!"); return; }
+    if (categoryInput.trim() === "") { alert("please enter a category type before saving!"); return; }
+
+    let newLocation = {
+        name: nameInput,
+        category: categoryInput,
+        notes: notesInput,
+        visited: (editingIndex !== null) ? currentTrip.locations[editingIndex].visited : false, // Keep visited status if editing
+        cost: parseFloat(priceInput) || 0 
+    };
+
+    if (editingIndex !== null) {
+        // WE ARE UPDATING AN OLD SPOT
+        currentTrip.locations[editingIndex] = newLocation;
+        editingIndex = null; // Reset the tracker
+        addButton.innerText = "save location"; // Reset the button
+        addButton.style.backgroundColor = "#4CAF50";
+        addButton.style.color = "white";
+    } else {
+        // WE ARE SAVING A BRAND NEW SPOT
+        currentTrip.locations.push(newLocation);
+    }
+
+    renderLocations();
+    
+    // Clear boxes
+    document.getElementById('new-name').value = "";
+    document.getElementById('new-category').value = "";
+    document.getElementById('new-notes').value = "";
+    document.getElementById('new-price').value = ""; 
+});
 
 // ==========================================
 // ENGINE 3: DATA MANAGEMENT (EXPORT/IMPORT/DELETE)
@@ -359,7 +441,7 @@ btnImport.addEventListener('click', function() {
     }
 });
 
-// new location listener
+// new location listener (UPDATED TO GRAB PRICE)
 addButton.addEventListener('click', function() {
     if (!activeTripId) return;
     let currentTrip = masterTripsArray.find(t => t.id === activeTripId);
@@ -367,6 +449,7 @@ addButton.addEventListener('click', function() {
     let nameInput = document.getElementById('new-name').value;
     let categoryInput = document.getElementById('new-category').value;
     let notesInput = document.getElementById('new-notes').value;
+    let priceInput = document.getElementById('new-price').value; // <--- GRABS THE PRICE
 
     if (nameInput.trim() === "") {
         alert("please enter a location name before saving!");
@@ -382,7 +465,8 @@ addButton.addEventListener('click', function() {
         name: nameInput,
         category: categoryInput,
         notes: notesInput,
-        visited: false
+        visited: false,
+        cost: parseFloat(priceInput) || 0 // <--- SAVES THE PRICE AS A MATH NUMBER
     };
 
     currentTrip.locations.push(newLocation);
@@ -391,6 +475,7 @@ addButton.addEventListener('click', function() {
     document.getElementById('new-name').value = "";
     document.getElementById('new-category').value = "";
     document.getElementById('new-notes').value = "";
+    document.getElementById('new-price').value = ""; // <--- CLEARS THE PRICE BOX
 });
 
 // INITIALIZATION
