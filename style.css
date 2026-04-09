@@ -14,3 +14,22 @@ body {
     margin-bottom: 20px; /* Space outside the box, pushing the next card down */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Adds a tiny drop shadow */
 }
+
+/* 3. SPA Page Transition
+
+/* The animation blueprint */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(10px); /* This adds a tiny, premium upward slide */
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+/* The class we attach to our HTML pages */
+.smooth-transition {
+    animation: fadeIn 0.4s ease-out; /* 0.4s is the sweet spot for UI feels */
+}
