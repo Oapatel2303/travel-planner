@@ -33,3 +33,11 @@ body {
 .smooth-transition {
     animation: fadeIn 0.4s ease-out; /* 0.4s is the sweet spot for UI feels */
 }
+
+/* 4. Mobile Response (Snap) */
+@media (max-width: 800px) {
+    .mobile-stack {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+}
