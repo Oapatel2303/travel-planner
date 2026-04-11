@@ -14,12 +14,21 @@ let masterTripsArray;
 
 if (savedMaster) {
     masterTripsArray = JSON.parse(savedMaster);
+
+    // --- MIGRATION PATCH ---
+    // default it to an empty string so the API just safely says "unknown" instead of crashing.
+    for (let i = 0; i < masterTripsArray.length; i++) {
+        if (!masterTripsArray[i].destination) {
+            masterTripsArray[i].destination = ""; 
+        }
+    }
 } else {
     // hardcoding the test dummies (japan and france) to prove the filter works
     masterTripsArray = [
         {
             id: "trip_japan",
             name: "japan 2026",
+            destination: "japan",
             dates: "oct 2026",
             categories: [
                 { name: "vegetarian spots", checked: false },
@@ -35,6 +44,7 @@ if (savedMaster) {
         {
             id: "trip_france",
             name: "france food tour",
+            destination: "france",
             dates: "sept 2027",
             categories: [
                 { name: "bistro classics", checked: false }
@@ -98,11 +108,17 @@ modalCancel.addEventListener('click', function() {
 // 3. FACTORY LOGIC (CREATING A FOLDER)
 modalCreate.addEventListener('click', function() {
     let rawName = document.getElementById('modal-trip-name').value;
+    let rawDest = document.getElementById('modal-trip-dest').value; // <--- GRAB IT
     let rawDates = document.getElementById('modal-trip-dates').value;
     let rawCats = document.getElementById('modal-trip-cats').value;
 
     if (rawName.trim() === "") {
         alert("yo you need to name the trip first!");
+        return;
+    }
+
+    if (rawDest.trim() === "") {
+        alert("you gotta tell us what country you are going to!");
         return;
     }
 
@@ -120,6 +136,7 @@ modalCreate.addEventListener('click', function() {
     let newFolder = {
         id: "trip_" + Date.now(),
         name: rawName,
+        destination: rawDest.toLowerCase().trim(),
         dates: rawDates,
         categories: processedCategories,
         locations: [] 
@@ -129,6 +146,7 @@ modalCreate.addEventListener('click', function() {
     localStorage.setItem('myMasterTrips', JSON.stringify(masterTripsArray));
 
     document.getElementById('modal-trip-name').value = "";
+    document.getElementById('modal-trip-dest').value = "";
     document.getElementById('modal-trip-dates').value = "";
     document.getElementById('modal-trip-cats').value = "";
     newTripModal.style.display = 'none';
@@ -177,6 +195,7 @@ window.openTrip = function(tripId) {
     // command both engines to draw ONLY the stuff for this specific folder
     renderCategories();
     renderLocations();
+    fetchCurrencyRate();
 }
 
 
@@ -477,6 +496,57 @@ addButton.addEventListener('click', function() {
     document.getElementById('new-notes').value = "";
     document.getElementById('new-price').value = ""; // <--- CLEARS THE PRICE BOX
 });
+
+// ==========================================
+// ENGINE 4: EXTERNAL APIS
+// ==========================================
+async function fetchCurrencyRate() {
+    if (!activeTripId) return;
+    let currentTrip = masterTripsArray.find(t => t.id === activeTripId);
+    
+    // Grab the bullseye  set up earlier
+    let rateTextElement = document.getElementById('currency-rate-text');
+    if (!rateTextElement) return;
+
+    // Grab the clean destination
+    let destination = currentTrip.destination; 
+
+    try {
+        rateTextElement.innerText = "locating..."; 
+        rateTextElement.style.color = "#888"; 
+
+        // WAIT 1: Ask REST Countries for the specific currency code
+        let countryResponse = await fetch(`https://restcountries.com/v3.1/name/${destination}`);
+        
+        if (!countryResponse.ok) {
+            rateTextElement.innerText = "unknown country";
+            return;
+        }
+        
+        let countryData = await countryResponse.json();
+        let targetCurrency = Object.keys(countryData[0].currencies)[0]; // e.g., "JPY" or "EUR"
+
+        rateTextElement.innerText = "fetching rate...";
+
+        // WAIT 2: Ask the Exchange Rate API for the live math
+        let rateResponse = await fetch('https://open.er-api.com/v6/latest/USD');
+        let rateData = await rateResponse.json();
+        
+        let rate = rateData.rates[targetCurrency];
+
+        if (rate) {
+            rateTextElement.innerText = `1 USD = ${rate.toFixed(2)} ${targetCurrency}`;
+            rateTextElement.style.color = "#4CAF50"; // Green for success
+            rateTextElement.style.fontWeight = "bold";
+        } else {
+            rateTextElement.innerText = "rate not found";
+        }
+
+    } catch (error) {
+        console.error("API Error:", error);
+        rateTextElement.innerText = "api offline";
+    }
+}
 
 // INITIALIZATION
 // run this once to draw the dashboard the second you open the website

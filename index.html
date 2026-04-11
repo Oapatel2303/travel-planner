@@ -23,7 +23,8 @@
             
             <input type="text" id="modal-trip-name" placeholder="trip name (ex. kyoto fall)" style="width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box;">
             <input type="text" id="modal-trip-dates" placeholder="dates (ex. nov 2026)" style="width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box;">
-            
+            <input type="text" id="modal-trip-dest" placeholder="destination country (ex. japan)" style="width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box;">
+
             <p style="font-size: 12px; color: gray; margin-bottom: 5px; text-align: left;">categories of interest (comma separated):</p>
             <input type="text" id="modal-trip-cats" placeholder="ex. shrines, vegan food, arcades" style="width: 100%; margin-bottom: 15px; padding: 8px; box-sizing: border-box;">
             
@@ -67,7 +68,7 @@
                 
                 <div style="background-color: #e9ecef; border: 2px dashed #bbb; border-radius: 8px; padding: 10px 20px; width: 160px; text-align: center;">
                     <h4 style="margin: 0; color: #555;">💴 currency calc</h4>
-                    <p style="margin: 5px 0 0; font-size: 12px; color: #888;">api placeholder</p>
+                    <p id="currency-rate-text" style="margin: 5px 0 0; font-size: 12px; color: #888;">api placeholder</p>
                 </div>
             </div>
 
@@ -79,7 +80,7 @@
             
             <div style="flex: 1.2;">
                 <h2>categories to track:</h2>
-                ```
+
                 <div style="margin-bottom: 15px;">
                     <input type="text" id="new-cat-input" placeholder="new category...">
                     <button id="add-cat-btn">add</button>
