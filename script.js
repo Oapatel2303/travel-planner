@@ -562,6 +562,18 @@ async function fetchCurrencyRate() {
     }
 }
 
+// ==========================================
+// ENGINE 5: UI LIBRARIES
+// ==========================================
+
+// Attach Flatpickr to the modal's date input
+flatpickr("#modal-trip-dates", {
+    mode: "range",
+    dateFormat: "M j, Y", // Formats as "Oct 1, 2026 to Oct 15, 2026"
+    minDate: "today",     // Prevents users from booking trips in the past
+    showMonths: 1         // Shows one month at a time (mobile friendly)
+});
+
 // INITIALIZATION
 // run this once to draw the dashboard the second you open the website
 renderDashboard();

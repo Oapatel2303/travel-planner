@@ -41,3 +41,8 @@ body {
         align-items: stretch !important;
     }
 }
+
+/* Override Flatpickr's default font */
+.flatpickr-calendar {
+    font-family: inherit !important; 
+}
