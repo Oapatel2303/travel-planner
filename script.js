@@ -99,23 +99,43 @@ btnBack.addEventListener('click', function() {
 
 btnHome.addEventListener('click', function() {
     pageDashboard.style.display = 'none';
-    pageWelcome.style.display = 'block';
+    pageWelcome.style.display = 'flex'; // Must be FLEX to center correctly!
+
+    resetWelcomeStage();
 });
 
 btnLoadTrips.addEventListener('click', function() {
     pageWelcome.style.display = 'none';
     pageDashboard.style.display = 'block';
 
-    // just incase of user adds trip, goes home, and then back to loaded screen.
+    resetWelcomeStage(); // Close modal behind the scenes
     renderDashboard();
 });
 
+function resetWelcomeStage() {
+    let stage = document.getElementById('welcome-stage');
+    let modal = document.getElementById('new-trip-modal');
+    stage.classList.remove('modal-active');
+    modal.classList.remove('show');
+    setTimeout(() => { modal.style.display = 'none'; }, 600);
+}
+
+// OPEN MODAL
 btnNewTrip.addEventListener('click', function() {
-    newTripModal.style.display = 'block';
+    let stage = document.getElementById('welcome-stage');
+    let modal = document.getElementById('new-trip-modal');
+    
+    modal.style.display = 'block';
+    // Small delay allows 'display: block' to register before animation starts
+    setTimeout(() => {
+        stage.classList.add('modal-active');
+        modal.classList.add('show');
+    }, 10);
 });
 
+// CLOSE MODAL
 modalCancel.addEventListener('click', function() {
-    newTripModal.style.display = 'none';
+    resetWelcomeStage();
 });
 
 
@@ -351,6 +371,7 @@ function renderLocations() {
             currentTrip.locations.splice(i,1);
             renderLocations();
             renderMapPins();
+            loadWeather();
         });
 
         // NEW: Edit Button
@@ -476,7 +497,8 @@ addButton.addEventListener('click', async function() {
     addButton.disabled = false;
     
     renderLocations();
-    renderMapPins(); // <-- Tell the map to draw the new pin!
+    renderMapPins();
+    loadWeather();
     
     document.getElementById('new-name').value = "";
     document.getElementById('new-category').value = "";

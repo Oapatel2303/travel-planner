@@ -16,31 +16,33 @@
         🌙 Dark Mode
     </button>
 
-    <div id="page-welcome" class="smooth-transition" style="display: block; text-align: center; margin-top: 50px;">
-        <h2 style="font-size: 2em; margin-bottom: 5px;">welcome to my itinerary planner</h2>
-        <p style="color: gray; margin-bottom: 30px;">built by ohm patel</p>
-        
-        <div>
-            <button id="btn-new-trip" style="background-color: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; margin: 10px;">new itinerary</button>
-            <button id="btn-load-trips" style="background-color: #2196F3; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; margin: 10px;">load planners</button>
+    <div id="page-welcome" class="smooth-transition">
+    <div id="welcome-stage">
+        <div class="glass-card">
+            <h2>welcome to my itinerary planner</h2>
+            <p style="text-align: center; width: 100%; opacity: 0.7;">built by ohm patel</p>
+            <div class="welcome-buttons">
+                <button id="btn-new-trip">new itinerary</button>
+                <button id="btn-load-trips">load planners</button>
+            </div>
         </div>
 
-        <div id="new-trip-modal" class="smooth-transition" style="display: none; background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; width: 300px; margin: 30px auto; box-shadow: 0 4px 8px var(--shadow-color); transition: all 0.3s ease;">
-            <h3 style="margin-top: 0; color: var(--text-color);">create new trip</h3>
-            
-            <input type="text" id="modal-trip-name" placeholder="trip name (ex. kyoto fall)" style="width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box;">
-            <input type="text" id="modal-trip-dates" placeholder="dates (ex. nov 2026)" style="width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box;">
-            <input type="text" id="modal-trip-dest" placeholder="destination country (ex. japan)" style="width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box;">
-
-            <p style="font-size: 12px; color: var(--text-color); opacity: 0.7; margin-bottom: 5px; text-align: left;">categories of interest (comma separated):</p>
-            <input type="text" id="modal-trip-cats" placeholder="ex. shrines, vegan food, arcades" style="width: 100%; margin-bottom: 15px; padding: 8px; box-sizing: border-box;">
-            
-            <div style="display: flex; justify-content: space-between;">
-                <button id="modal-cancel-btn" style="background-color: var(--danger-color); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; transition: background-color 0.3s ease;">cancel</button>
-                <button id="modal-create-btn" style="background-color: var(--success-color); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; transition: background-color 0.3s ease;">create</button>
+        <div id="new-trip-modal" style="display: none;">
+            <h3>create new trip</h3>
+            <div class="modal-inputs">
+                <input type="text" id="modal-trip-name" placeholder="trip name (ex. kyoto fall)">
+                <input type="text" id="modal-trip-dates" placeholder="dates (ex. nov 2026)">
+                <input type="text" id="modal-trip-dest" placeholder="destination country (ex. japan)">
+                <p class="input-label">categories of interest (comma separated):</p>
+                <input type="text" id="modal-trip-cats" placeholder="ex. shrines, vegan food, arcades">
+            </div>
+            <div class="modal-btns">
+                <button id="modal-cancel-btn">cancel</button>
+                <button id="modal-create-btn">create</button>
             </div>
         </div>
     </div>
+</div>
 
     <div id="page-dashboard" class="smooth-transition" style="display: none;">
         <h2>your saved trips</h2>
