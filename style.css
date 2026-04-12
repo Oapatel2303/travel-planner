@@ -251,9 +251,57 @@ input {
 }
 
 /* Modal UI Cleanup */
-.modal-inputs input { width: 100%; margin-bottom: 12px; padding: 12px; border-radius: 8px; }
+.modal-inputs input { width: 100%; margin-bottom: 12px; padding: 12px; border-radius: 8px; box-sizing: border-box; border: 1px solid #444444;}
 .input-label { font-size: 12px; opacity: 0.7; margin: 0 0 5px 0; text-align: left; }
 .modal-btns { display: flex; justify-content: space-between; margin-top: 15px; }
 .modal-btns button { padding: 8px 16px; border-radius: 6px; border: none; color: white; cursor: pointer; }
 #modal-cancel-btn { background: var(--danger-color); }
 #modal-create-btn { background: var(--success-color); }
+
+/* ==========================================
+   8. MOBILE HOMEPAGE FIX
+   ========================================== */
+@media (max-width: 800px) {
+    /* 1. Stack the stage vertically instead of side-by-side */
+    #welcome-stage {
+        flex-direction: column;
+    }
+    
+    /* 2. Push them apart vertically when the modal opens */
+    #welcome-stage.modal-active {
+        gap: 20px;
+    }
+
+    /* 3. Shrink the massive desktop glass card */
+    .glass-card {
+        padding: 30px 20px;
+        width: 90%; /* Forces it to fit inside the phone screen */
+        max-width: 400px;
+    }
+
+    .glass-card h2 {
+        font-size: 1.8em; /* Shrink the giant header */
+    }
+
+    /* 4. Stack the buttons so they don't break the container */
+    .welcome-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .welcome-buttons button {
+        width: 100%;
+    }
+
+    /* 5. Shrink the modal and make it slide UP instead of LEFT */
+    #new-trip-modal {
+        width: 90%;
+        max-width: 400px;
+        padding: 20px;
+        transform: translateY(50px); /* Replaces the horizontal slide */
+    }
+
+    #new-trip-modal.show {
+        transform: translateY(0);
+    }
+}
