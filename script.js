@@ -211,6 +211,8 @@ window.openTrip = function(tripId) {
     renderLocations();
     fetchCurrencyRate();
     loadWeather();
+    initMap();
+
 }
 
 
@@ -333,7 +335,7 @@ function renderLocations() {
 
     let budgetDisplay = document.getElementById('budget-display');
     if (budgetDisplay) {
-        budgetDisplay.innerText = `total budget: $${tripTotal.toFixed(2)}`;
+        budgetDisplay.innerText = `total spending: $${tripTotal.toFixed(2)}`;
     }
 
     // ATTACH LISTENERS FOR ALL BUTTONS
@@ -348,6 +350,7 @@ function renderLocations() {
         document.getElementById(`delete-btn-${i}`).addEventListener('click', function(){
             currentTrip.locations.splice(i,1);
             renderLocations();
+            renderMapPins();
         });
 
         // NEW: Edit Button
@@ -372,8 +375,56 @@ function renderLocations() {
     }
 }
 
-// UPDATED SAVE BUTTON LOGIC
-addButton.addEventListener('click', function() {
+// --- HELPER: Smart Geocoding Waterfall ---
+async function smartGeocode(rawName, country) {
+    // 1. Regex Magic: This completely deletes anything inside parentheses () 
+    // Example: "t's tantan (tokyo station)" becomes "t's tantan"
+    let cleanName = rawName.replace(/ *\([^)]*\) */g, "").trim();
+    
+    // Grab just the first word as an absolute last resort (e.g., "daikoku futo pa" -> "daikoku")
+    let firstWord = cleanName.split(" ")[0];
+
+    // 2. The Waterfall Array (Try most specific first, fallback to broader searches)
+    let searchAttempts = [
+        `${rawName}, ${country}`,    // Attempt 1: "t's tantan (tokyo station), japan"
+        `${cleanName}, ${country}`,  // Attempt 2: "t's tantan, japan"
+        rawName,                     // Attempt 3: "t's tantan (tokyo station)"
+        cleanName,                   // Attempt 4: "t's tantan"
+    ];
+
+    // Only add the first-word fallback if the word is long enough to mean something
+    if (firstWord && firstWord.length > 3) {
+        searchAttempts.push(`${firstWord}, ${country}`); // Attempt 5: "daikoku, japan"
+    }
+
+    // 3. Loop through the attempts one by one
+    for (let i = 0; i < searchAttempts.length; i++) {
+        let query = searchAttempts[i];
+        try {
+            let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+            let data = await res.json();
+
+            // If we found a match, immediately return the coordinates and STOP the loop!
+            if (data && data.length > 0) {
+                console.log(`📍 Success! Found map pin using query: "${query}"`);
+                return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+            }
+        } catch (error) {
+            console.error(`Geocode error on "${query}":`, error);
+        }
+
+        // IMPORTANT: Nominatim will ban if we fire 5 requests at the exact same millisecond. 
+        // We pause for 800 milliseconds between attempts to respect their server limits.
+        await new Promise(resolve => setTimeout(resolve, 800));
+    }
+
+    // If we tried all 5 versions and STILL failed, return 0
+    console.warn("Waterfall exhausted. Could not locate pin.");
+    return { lat: 0, lng: 0 };
+}
+
+// UPDATED SAVE BUTTON LOGIC (NOW WITH AUTO-GEOCODING)
+addButton.addEventListener('click', async function() {
     if (!activeTripId) return;
     let currentTrip = masterTripsArray.find(t => t.id === activeTripId);
 
@@ -385,29 +436,48 @@ addButton.addEventListener('click', function() {
     if (nameInput.trim() === "") { alert("please enter a location name before saving!"); return; }
     if (categoryInput.trim() === "") { alert("please enter a category type before saving!"); return; }
 
+    // --- NEW: UX Loading State ---
+    let originalBtnText = addButton.innerText;
+    addButton.innerText = "locating pin...";
+    addButton.disabled = true;
+
+    // --- FIRE THE WATERFALL BRAIN ---
+    let coords = await smartGeocode(nameInput, currentTrip.destination);
+    let finalLat = coords.lat;
+    let finalLng = coords.lng;
+
+    // --- GRACEFUL DEGRADATION UX ---
+    if (finalLat === 0 && finalLng === 0) {
+        alert(`Saved to your list! However, the map still couldn't find the exact GPS coordinates for "${nameInput}". It might be too obscure for our map database!`);
+    }
+
+    // Build the clean object (Declared only ONCE!)
     let newLocation = {
         name: nameInput,
         category: categoryInput,
         notes: notesInput,
-        visited: (editingIndex !== null) ? currentTrip.locations[editingIndex].visited : false, // Keep visited status if editing
-        cost: parseFloat(priceInput) || 0 
+        visited: (editingIndex !== null) ? currentTrip.locations[editingIndex].visited : false,
+        cost: parseFloat(priceInput) || 0,
+        lat: finalLat, 
+        lng: finalLng  
     };
 
     if (editingIndex !== null) {
-        // WE ARE UPDATING AN OLD SPOT
         currentTrip.locations[editingIndex] = newLocation;
-        editingIndex = null; // Reset the tracker
-        addButton.innerText = "save location"; // Reset the button
-        addButton.style.backgroundColor = "#4CAF50";
+        editingIndex = null; 
+        addButton.style.backgroundColor = "var(--success-color)";
         addButton.style.color = "white";
     } else {
-        // WE ARE SAVING A BRAND NEW SPOT
         currentTrip.locations.push(newLocation);
     }
 
-    renderLocations();
+    // Reset UI
+    addButton.innerText = "save location";
+    addButton.disabled = false;
     
-    // Clear boxes
+    renderLocations();
+    renderMapPins(); // <-- Tell the map to draw the new pin!
+    
     document.getElementById('new-name').value = "";
     document.getElementById('new-category').value = "";
     document.getElementById('new-notes').value = "";
@@ -472,42 +542,6 @@ btnImport.addEventListener('click', function() {
     }
 });
 
-// new location listener (UPDATED TO GRAB PRICE)
-addButton.addEventListener('click', function() {
-    if (!activeTripId) return;
-    let currentTrip = masterTripsArray.find(t => t.id === activeTripId);
-
-    let nameInput = document.getElementById('new-name').value;
-    let categoryInput = document.getElementById('new-category').value;
-    let notesInput = document.getElementById('new-notes').value;
-    let priceInput = document.getElementById('new-price').value; // <--- GRABS THE PRICE
-
-    if (nameInput.trim() === "") {
-        alert("please enter a location name before saving!");
-        return; 
-    }
-
-    if (categoryInput.trim() === "") {
-        alert("please enter a category type before saving!");
-        return; 
-    }
-
-    let newLocation = {
-        name: nameInput,
-        category: categoryInput,
-        notes: notesInput,
-        visited: false,
-        cost: parseFloat(priceInput) || 0 // <--- SAVES THE PRICE AS A MATH NUMBER
-    };
-
-    currentTrip.locations.push(newLocation);
-    renderLocations();
-    
-    document.getElementById('new-name').value = "";
-    document.getElementById('new-category').value = "";
-    document.getElementById('new-notes').value = "";
-    document.getElementById('new-price').value = ""; // <--- CLEARS THE PRICE BOX
-});
 
 // ==========================================
 // ENGINE 4: EXTERNAL APIS
@@ -550,8 +584,12 @@ async function fetchCurrencyRate() {
 
         if (rate) {
             rateTextElement.innerText = `1 USD = ${rate.toFixed(2)} ${targetCurrency}`;
-            rateTextElement.style.color = "#4CAF50"; // Green for success
+            rateTextElement.style.color = "var(--success-color)";
             rateTextElement.style.fontWeight = "bold";
+            
+            rateTextElement.style.fontSize = "24px"; // Was 16px
+            rateTextElement.style.marginTop = "15px"; // Gives it more breathing room
+            rateTextElement.style.display = "block"; // Ensures it centers nicely
         } else {
             rateTextElement.innerText = "rate not found";
         }
@@ -576,62 +614,95 @@ async function loadWeather() {
     const destination = currentTrip.destination.toLowerCase();
     weatherText.innerText = "scanning regions..."; 
 
-    // 1. The Geography Brain (Add as many countries as you want here!)
-    const majorCitiesMap = {
-        "japan": ["Tokyo", "Osaka", "Sapporo"],
-        "france": ["Paris", "Lyon", "Marseille"],
-        "italy": ["Rome", "Milan", "Naples"],
-        "usa": ["New York", "Los Angeles", "Chicago"]
-    };
-
-    // If the country is in our map, use the array of cities. Otherwise, just search the country name.
-    let citiesToSearch = majorCitiesMap[destination] || [destination];
-    
     let finalWeatherHTML = "";
+    
+    // This array will hold the exact GPS coordinates we want to check
+    let locationsToFetch = []; 
 
     try {
-        // 2. Loop through each city and fetch data
-        for (let i = 0; i < citiesToSearch.length; i++) {
-            let city = citiesToSearch[i];
-
-            // A. Geocode the specific city
-            let geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
-            let geoData = await geoResponse.json();
-
-            if (geoData.results && geoData.results.length > 0) {
-                const lat = geoData.results[0].latitude;
-                const lng = geoData.results[0].longitude;
-
-                // B. Fetch the weather for those coordinates
-                let weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`);
-                let weatherData = await weatherResponse.json();
-
-                const weatherCode = weatherData.current_weather.weathercode;
-                const tempC = weatherData.current_weather.temperature;
-                const tempF = ((tempC * 9/5) + 32).toFixed(1);
-
-                const weatherMap = {
-                    0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️",
-                    45: "🌫️", 48: "🌫️",
-                    51: "🌧️", 53: "🌧️", 55: "🌧️",
-                    61: "🌧️", 63: "🌧️", 65: "🌧️",
-                    71: "🌨️", 73: "🌨️", 75: "🌨️",
-                    95: "⛈️"
-                };
-
-                let emoji = weatherMap[weatherCode] || "🌈";
-
-                // C. Build a clean row for this city
-                finalWeatherHTML += `
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 6px 0;">
-                        <span style="font-weight: bold; text-transform: capitalize;">${city}</span>
-                        <span>${emoji} ${tempF}°F</span>
-                    </div>
-                `;
+        // --- 1: find the Capital City ---
+        let countryResponse = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(destination)}`);
+        if (countryResponse.ok) {
+            let countryData = await countryResponse.json();
+            let capital = countryData[0].capital ? countryData[0].capital[0] : destination;
+            
+            // Ask Open-Meteo where the capital is
+            let capGeoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(capital)}&count=1&language=en&format=json`);
+            let capGeoData = await capGeoRes.json();
+            
+            if (capGeoData.results && capGeoData.results.length > 0) {
+                locationsToFetch.push({
+                    name: capital + " (Capital)",
+                    lat: capGeoData.results[0].latitude,
+                    lng: capGeoData.results[0].longitude
+                });
             }
         }
 
-        // 3. Paint the final list to the screen
+        // --- 2: Scan the user's saved pins ---
+        let addedCount = 0;
+        for (let i = 0; i < currentTrip.locations.length; i++) {
+            let spot = currentTrip.locations[i];
+            
+            // If the spot has real GPS coordinates
+            if (spot.lat && spot.lng && spot.lat !== 0) {
+                // Only grab up to 2 of their pins
+                if (addedCount < 2) {
+                    locationsToFetch.push({
+                        // Truncate the name if it's too long so it fits in the widget
+                        name: spot.name.substring(0, 14) + (spot.name.length > 14 ? "..." : ""), 
+                        lat: spot.lat,
+                        lng: spot.lng
+                    });
+                    addedCount++;
+                }
+            }
+        }
+
+        // --- 3: Fallback ---
+        if (locationsToFetch.length === 0) {
+             let fallbackRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&language=en&format=json`);
+             let fallbackData = await fallbackRes.json();
+             if (fallbackData.results && fallbackData.results.length > 0) {
+                 locationsToFetch.push({
+                    name: destination,
+                    lat: fallbackData.results[0].latitude,
+                    lng: fallbackData.results[0].longitude
+                 });
+             }
+        }
+
+        // --- 4: Fetch the weather for custom list ---
+        for (let i = 0; i < locationsToFetch.length; i++) {
+            let loc = locationsToFetch[i];
+
+            let weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lng}&current_weather=true`);
+            let weatherData = await weatherResponse.json();
+
+            const weatherCode = weatherData.current_weather.weathercode;
+            const tempC = weatherData.current_weather.temperature;
+            const tempF = ((tempC * 9/5) + 32).toFixed(1);
+
+            const weatherMap = {
+                0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️",
+                45: "🌫️", 48: "🌫️",
+                51: "🌧️", 53: "🌧️", 55: "🌧️",
+                61: "🌧️", 63: "🌧️", 65: "🌧️",
+                71: "🌨️", 73: "🌨️", 75: "🌨️",
+                95: "⛈️"
+            };
+
+            let emoji = weatherMap[weatherCode] || "🌈";
+
+            finalWeatherHTML += `
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 6px 0;">
+                    <span style="font-weight: bold; text-transform: capitalize; font-size: 13px;">${loc.name}</span>
+                    <span style="font-size: 13px;">${emoji} ${tempF}°F</span>
+                </div>
+            `;
+        }
+
+        // Paint the screen
         if (finalWeatherHTML === "") {
             weatherText.innerText = "weather unavailable";
         } else {
@@ -685,6 +756,102 @@ themeToggleBtn.addEventListener('click', function() {
         localStorage.setItem('myAppTheme', 'light');
     }
 });
+
+// ==========================================
+// ENGINE 6: LEAFLET.JS INTERACTIVE MAP
+// ==========================================
+let myMap = null; // need a global variable to keep track of the map
+
+async function initMap() {
+    if (!activeTripId) return;
+    let currentTrip = masterTripsArray.find(t => t.id === activeTripId);
+
+    // 1. If a map already exists from a previous trip, destroy it and draw a new one
+    if (myMap !== null) {
+        myMap.remove();
+        myMap = null;
+    }
+
+    const destination = currentTrip.destination;
+
+    try {
+        // 2. Open-Meteo to find the center of the country
+        let geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&language=en&format=json`);
+        let geoData = await geoResponse.json();
+
+        // Default to the middle of the ocean (0,0) if the user types a fake country
+        let centerLat = 0;
+        let centerLng = 0;
+        let zoomLevel = 2; // Zoomed way out for the whole world
+
+        if (geoData.results && geoData.results.length > 0) {
+            centerLat = geoData.results[0].latitude;
+            centerLng = geoData.results[0].longitude;
+            zoomLevel = 5; // Zoomed in to see the specific country
+        }
+
+        // 3. Boot up the Leaflet Map
+        myMap = L.map('map').setView([centerLat, centerLng], zoomLevel);
+
+        // 4. Add the actual map drawing (The Tiles) - Using CARTO Voyager for English labels
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors, © CARTO'
+        }).addTo(myMap);
+
+        // 5. Add the Interactive Search Bar (Top Right so it doesn't block the zoom buttons)
+        L.Control.geocoder({
+            position: 'topright'
+        }).addTo(myMap);
+
+        // bug fix: draws pins exact moment map finishes loading
+        renderMapPins();
+
+    } catch (error) {
+        console.error("Map initialization failed:", error);
+    }
+}
+
+    // Draws the physical pins on the Leaflet Map
+function renderMapPins() {
+    if (!myMap || !activeTripId) return;
+    let currentTrip = masterTripsArray.find(t => t.id === activeTripId);
+
+    // 1. Wipe the map clean of old pins so we don't get duplicates
+    myMap.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+            myMap.removeLayer(layer);
+        }
+    });
+
+    let bounds = []; // Tracks the outer edges of all your pins
+
+    // 2. Loop through your locations and draw them
+    for (let i = 0; i < currentTrip.locations.length; i++) {
+        let spot = currentTrip.locations[i];
+        
+        // Only draw a pin if we successfully found GPS coordinates!
+        if (spot.lat && spot.lng && (spot.lat !== 0 || spot.lng !== 0)) {
+            
+            // Drop the pin
+            let marker = L.marker([spot.lat, spot.lng]).addTo(myMap);
+            
+            // Add the popup bubble
+            marker.bindPopup(`
+                <b style="font-size: 14px;">${spot.name}</b><br>
+                <span style="color: gray; font-size: 12px;">${spot.category}</span>
+            `);
+            
+            // Add this pin's location to our bounding box
+            bounds.push([spot.lat, spot.lng]);
+        }
+    }
+
+    // 3. The Camera Director: Auto-zoom to fit all pins perfectly
+    if (bounds.length > 0) {
+        myMap.fitBounds(bounds, { padding: [50, 50] });
+    }
+}
 
 // INITIALIZATION
 // run this once to draw the dashboard the second you open the website

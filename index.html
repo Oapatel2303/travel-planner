@@ -5,12 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Travel Planner</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <h1>Travel Planner Dashboard</h1>
 
-    <button id="theme-toggle" style="position: absolute; top: 20px; right: 20px; padding: 8px 12px; cursor: pointer; border-radius: 20px; border: 1px solid gray; background: transparent; font-size: 16px;">
+    <button id="theme-toggle" class="theme-toggle-btn">
         🌙 Dark Mode
     </button>
 
@@ -62,7 +64,7 @@
             
             <div>
                 <h2 id="current-trip-title" style="color: #2196F3";>loading trip...</h2>
-                <h3 id="budget-display" style="color: #4CAF50; margin-top: 0; margin-bottom: 0;">total budget: $0</h3>
+                <h3 id="budget-display" style="color: #4CAF50; margin-top: 0; margin-bottom: 0;">total spending: $0</h3>
             </div>
 
             <div style="display: flex; gap: 15px;">
@@ -107,15 +109,13 @@
                 <div id="locations-container"></div>
             </div>
 
-            <div style="flex: 1; background-color: #e9ecef; border: 2px dashed #bbb; border-radius: 8px; min-height: 600px; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center;">
-                <div>
-                    <h2 style="color: #777;">future map space</h2>
-                    <p style="color: #888;">interactive leaflet.js map will load here.</p>
-                </div>
-            </div>
+            <div id="map" style="flex: 1; min-height: 600px; border-radius: 8px; border: 2px solid var(--border-color); z-index: 1;"></div>
+
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
         <script src="script.js"></script>
 </body>
 </html>
