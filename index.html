@@ -97,22 +97,60 @@
                 <ul id="categories-container" style="list-style-type: none; padding-left: 0;"></ul>
                 <hr>
 
-                <h2>add/edit location</h2>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                    <input type="text" id="new-name" placeholder="location name" style="flex: 1; min-width: 150px;">
+                <h2>add/edit location to schedule</h2>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: flex-end;">
+                    <input type="text" id="new-name" placeholder="location name" style="flex: 1.5; min-width: 150px;">
+                    
+                    <div style="width: 70px;">
+                        <p class="input-label" style="font-size: 11px; margin: 0 0 2px 2px; opacity: 0.7;">Day #</p>
+                        <input type="number" id="new-day" placeholder="ex. 1" min="1" value="1" style="width: 100%;">
+                    </div>
+
                     <input type="text" id="new-category" placeholder="category" style="flex: 1; min-width: 100px;">
                     <input type="text" id="new-notes" placeholder="notes" style="flex: 2; min-width: 200px;">
                     <input type="number" id="new-price" placeholder="price ($)" style="width: 80px;">
+                    
+                    <button id="add-btn" style="background-color: #4CAF50; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">save location</button>
                 </div>
-                <button id="add-btn" style="background-color: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">save location</button>
 
                 <hr>
+                
+                <div id="day-navigation" class="smooth-transition" style="display: flex; gap: 10px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                    </div>
+
                 <h2>saved locations</h2>
                 <div id="locations-container"></div>
             </div>
 
-            <div id="map" style="flex: 1; min-height: 600px; border-radius: 8px; border: 2px solid var(--border-color); z-index: 1;"></div>
+            <div style="position: relative; flex: 1;">
+                
+                <div id="transport-toggle" style="position: absolute; top: 10px; left: 60px; z-index: 500; display: flex; background: var(--card-bg); border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); overflow: hidden; border: 1px solid var(--border-color);">
+                    <button class="route-btn route-btn-active" data-mode="car">🚗 Car</button>
+                    <button class="route-btn" data-mode="foot">🚶 Walk</button>
+                    <button class="route-btn" data-mode="bike">🚲 Bike</button>
+                </div>
 
+                <div id="map" style="min-height: 600px; width: 100%; border-radius: 8px; border: 2px solid var(--border-color); z-index: 1;"></div>
+            </div>
+
+        </div>
+
+        <div id="ai-chat-container">
+            <div id="ai-chat-window" style="display: none;">
+                <div id="ai-chat-header">
+                    <span style="font-weight: bold;">💬 Local Guide AI</span>
+                    <button id="ai-close-btn">✖</button>
+                </div>
+                <div id="ai-chat-history">
+                    <div class="chat-message ai-message">Hi! I'm your local guide. What do you want to know about this trip?</div>
+                </div>
+                <div id="ai-chat-input-area">
+                    <input type="text" id="ai-user-input" placeholder="Ask about food, sights, transit...">
+                    <button id="ai-send-btn">Send</button>
+                </div>
+            </div>
+            
+            <button id="ai-toggle-btn">✨ Ask AI</button>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
